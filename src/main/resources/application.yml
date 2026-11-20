@@ -1,0 +1,30 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: "1БКС24064"
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/survey_lab5}
+    username: ${DB_USER:survey_lab5_app}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-seconds: ${JWT_ACCESS_SECONDS:900}
+  refresh-seconds: ${JWT_REFRESH_SECONDS:604800}

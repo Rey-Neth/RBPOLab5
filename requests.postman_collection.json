@@ -1,0 +1,232 @@
+{
+  "info": {
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "name": "Lab 5 JWT Access Refresh"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "200 Login",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "raw": "{\"username\":\"admin\",\"password\":\"TestAdmin123!\",\"deviceId\":\"postman-lab5\"}",
+          "mode": "raw"
+        },
+        "url": "{{baseUrl}}/auth/login",
+        "method": "POST"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expected status\",()=>pm.response.to.have.status(200));",
+              "const p=pm.response.json(); pm.collectionVariables.set(\"access\",p.accessToken); pm.collectionVariables.set(\"refresh\",p.refreshToken); pm.collectionVariables.set(\"oldRefresh\",p.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "200 Protected API",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/auth/me",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expected status\",()=>pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "200 Rotate refresh",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "raw": "{\"refreshToken\":\"{{refresh}}\"}",
+          "mode": "raw"
+        },
+        "url": "{{baseUrl}}/auth/refresh",
+        "method": "POST"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expected status\",()=>pm.response.to.have.status(200));",
+              "const p=pm.response.json(); pm.test(\"Tokens rotated\",()=>{pm.expect(p.refreshToken).not.eql(pm.collectionVariables.get(\"refresh\"));pm.expect(p.accessToken).not.eql(pm.collectionVariables.get(\"access\"));});pm.collectionVariables.set(\"access\",p.accessToken);pm.collectionVariables.set(\"refresh\",p.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "401 Replay old refresh",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "raw": "{\"refreshToken\":\"{{oldRefresh}}\"}",
+          "mode": "raw"
+        },
+        "url": "{{baseUrl}}/auth/refresh",
+        "method": "POST"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expected status\",()=>pm.response.to.have.status(401));",
+              "pm.test(\"No pair on failure\",()=>pm.expect(pm.response.json()).not.to.have.property(\"accessToken\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "200 New access still works",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/auth/me",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expected status\",()=>pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "401 Refresh cannot act as access",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{refresh}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/auth/me",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expected status\",()=>pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "201 Register",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "raw": "{\"username\":\"jwt_{{$randomAlphaNumeric}}\",\"password\":\"TestAccount123!\",\"deviceId\":\"postman\"}",
+          "mode": "raw"
+        },
+        "url": "{{baseUrl}}/auth/register",
+        "method": "POST"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Expected status\",()=>pm.response.to.have.status(201));",
+              "pm.test(\"Pair returned\",()=>{const p=pm.response.json();pm.expect(p.accessToken).to.be.a(\"string\");pm.expect(p.refreshToken).to.be.a(\"string\");});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
